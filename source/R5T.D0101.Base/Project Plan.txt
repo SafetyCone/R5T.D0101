@@ -1,0 +1,3 @@
+R5T.D0101.Base - Service definitions for IProjectRepository service.
+
+GOALS:
