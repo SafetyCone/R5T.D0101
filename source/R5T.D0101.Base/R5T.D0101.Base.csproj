@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\R5T.Dacia\source\R5T.Dacia.T002\R5T.Dacia.T002.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\R5T.Magyar\source\R5T.Magyar\R5T.Magyar.csproj" />
+    <ProjectReference Include="..\..\..\R5T.T0064\source\R5T.T0064\R5T.T0064.csproj" />
+    <ProjectReference Include="..\..\..\R5T.T0097\source\R5T.T0097\R5T.T0097.csproj" />
+  </ItemGroup>
 
 </Project>
