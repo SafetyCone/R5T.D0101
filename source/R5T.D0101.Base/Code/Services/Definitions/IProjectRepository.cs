@@ -17,6 +17,8 @@ namespace R5T.D0101
 
         Task AddProject(Project project);
 
+        Task AddProjects(IEnumerable<Project> project);
+
         Task<WasFound<Project>> HasProject(Project project);
 
         /// <summary>
@@ -57,6 +59,8 @@ namespace R5T.D0101
 
         Task<bool> DeleteProject(Guid projectIdentity);
 
+        Task<Dictionary<Guid, bool>> DeleteProjects(IEnumerable<Guid> projectIdentities);
+
         Task<bool> DeleteProject(string filePath);
 
         #endregion
@@ -64,6 +68,8 @@ namespace R5T.D0101
         #region Project Name Selections
 
         Task AddProjectNameSelection(ProjectNameSelection projectNameSelection);
+
+        Task AddProjectNameSelections(IEnumerable<ProjectNameSelection> projectNameSelections);
 
         Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(ProjectNameSelection projectNameSelection);
 
@@ -82,6 +88,8 @@ namespace R5T.D0101
         Task UpdateProjectNameSelection(string projectName, Guid newProjectIdentity);
 
         Task<bool> DeleteProjectNameSelection(string projectName);
+
+        Task<Dictionary<string, bool>> DeleteProjectNameSelections(IEnumerable<string> projectNames);
 
         Task<bool> DeleteProjectNameSelection(Guid projectIdentity);
 
@@ -128,10 +136,5 @@ namespace R5T.D0101
         Task<bool> DeleteDuplicateProjectNameSelection(Guid projectIdentity);
 
         #endregion
-
-
-        //public Task<Project[]> SelectProjects(Func<IProject, bool> predicate);
-        //public Task UpdateProjects(Func<IProject, bool> predicate, Action<Project> modifier);
-        //public Task DeleteProjects(Func<IProject, bool> predicate);
     }
 }

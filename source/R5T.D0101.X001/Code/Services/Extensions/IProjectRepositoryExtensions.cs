@@ -20,6 +20,19 @@ namespace System
             return output;
         }
 
+        public static async Task<Dictionary<Guid, bool>> DeleteProjectsOnly(this IProjectRepository projectRepository,
+            IEnumerable<Project> projects)
+        {
+            projects.VerifyAllIdentitiesAreSet();
+
+            var projectIdentities = projects
+                .Select(xProject => xProject.Identity)
+                ;
+
+            var output = await projectRepository.DeleteProjects(projectIdentities);
+            return output;
+        }
+
         /// <summary>
         /// Deletes both a project, and if it is a selected project, it's selected project entry.
         /// </summary>
@@ -33,6 +46,20 @@ namespace System
             return output;
         }
 
+        public static async Task<Dictionary<Guid, bool>> DeleteProjectsAndDependentData(this IProjectRepository projectRepository,
+            IEnumerable<Project> projects)
+        {
+            var output = await projectRepository.DeleteProjectsOnly(projects);
+
+            var projectNames = projects
+                .Select(xProject => xProject.Name)
+                ;
+
+            await projectRepository.DeleteProjectNameSelections(projectNames);
+
+            return output;
+        }
+
         /// <summary>
         /// Chooses <see cref="DeleteProjectAndDependentData(IProjectRepository, Project)"/> as the default.
         /// </summary>
@@ -40,6 +67,13 @@ namespace System
             Project project)
         {
             var output = await projectRepository.DeleteProjectAndDependentData(project);
+            return output;
+        }
+
+        public static async Task<Dictionary<Guid, bool>> DeleteProjects(this IProjectRepository projectRepository,
+            IEnumerable<Project> projects)
+        {
+            var output = await projectRepository.DeleteProjectsAndDependentData(projects);
             return output;
         }
 
@@ -84,6 +118,17 @@ namespace System
 
             var output = projectsByFilePathByFilePath.Values.ToArray();
             return output;
+        }
+
+        public static async Task<string[]> GetDuplicateProjectNames(this IProjectRepository projectRepository)
+        {
+            var allDuplicateProjectionNameSelections = await projectRepository.GetAllDuplicateProjectNameSelections();
+
+            var duplicateProjectNames = allDuplicateProjectionNameSelections
+                .Select(xProjectNameSelection => xProjectNameSelection.ProjectName)
+                .ToArray();
+
+            return duplicateProjectNames;
         }
     }
 }

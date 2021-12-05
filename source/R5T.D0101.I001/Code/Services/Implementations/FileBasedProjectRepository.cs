@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using R5T.Magyar;
 
+using R5T.T0094;
 using R5T.T0097;
 using R5T.T0064;
 
@@ -14,10 +15,167 @@ namespace R5T.D0101.I001
     [ServiceImplementationMarker]
     public class FileBasedProjectRepository : IFileBasedProjectRepository, IServiceImplementation
     {
-        public List<Project> Projects { get; } = new List<Project>();
-        public List<ProjectNameSelection> ProjectNameSelections { get; } = new List<ProjectNameSelection>();
-        public List<string> IgnoredProjectNames { get; } = new List<string>();
-        public List<ProjectNameSelection> DuplicateProjectNameSelections { get; } = new List<ProjectNameSelection>();
+        #region Static
+
+        private static WasFound<ProjectNameSelection> HasDuplicateProjectNameSelection(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections, Guid projectIdentity)
+        {
+            var projectNameSelectionOrDefault = duplicateProjectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectIdentity == projectIdentity)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static WasFound<ProjectNameSelection> HasDuplicateProjectNameSelection(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections, string projectName)
+        {
+            var projectNameSelectionOrDefault = duplicateProjectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectName)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static WasFound<ProjectNameSelection> HasDuplicateProjectNameSelection(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections, ProjectNameSelection projectNameSelection)
+        {
+            var projectNameSelectionOrDefault = duplicateProjectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectNameSelection.ProjectName && xProjectNameSelection.ProjectIdentity == projectNameSelection.ProjectIdentity)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static WasFound<string> HasIgnoredProjectName(IEnumerable<string> ignoredProjectNames, string projectName)
+        {
+            var projectNameOrDefault = ignoredProjectNames
+                .Where(xProjectName => xProjectName == projectName)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameOrDefault);
+            return output;
+        }
+
+        private static WasFound<ProjectNameSelection> HasProjectNameSelection(IEnumerable<ProjectNameSelection> projectNameSelections, Guid projectIdentity)
+        {
+            var projectNameSelectionOrDefault = projectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectIdentity == projectIdentity)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static WasFound<ProjectNameSelection> HasProjectNameSelection(IEnumerable<ProjectNameSelection> projectNameSelections, string projectName)
+        {
+            var projectNameSelectionOrDefault = projectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectName)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static WasFound<ProjectNameSelection> HasProjectNameSelection(IEnumerable<ProjectNameSelection> projectNameSelections,
+            ProjectNameSelection projectNameSelection)
+        {
+            var projectNameSelectionOrDefault = projectNameSelections
+                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectNameSelection.ProjectName && xProjectNameSelection.ProjectIdentity == projectNameSelection.ProjectIdentity)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectNameSelectionOrDefault);
+            return output;
+        }
+
+        private static Dictionary<ProjectNameSelection, WasFound<ProjectNameSelection>> HasProjectNameSelections(IEnumerable<ProjectNameSelection> projectNameSelections,
+            IEnumerable<ProjectNameSelection> testProjectNameSelections)
+        {
+            var output = new Dictionary<ProjectNameSelection, WasFound<ProjectNameSelection>>();
+
+            foreach (var testProjectNameSelection in testProjectNameSelections)
+            {
+                var wasFound = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, testProjectNameSelection);
+
+                output.Add(testProjectNameSelection, wasFound);
+            }
+
+            return output;
+        }
+
+        private static Dictionary<Project, WasFound<Project>> HasProjects(IEnumerable<Project> projects, IEnumerable<Project> newProjects)
+        {
+            var output = new Dictionary<Project, WasFound<Project>>();
+
+            foreach (var newProject in newProjects)
+            {
+                var wasFound = FileBasedProjectRepository.HasProject(projects, newProject);
+
+                output.Add(newProject, wasFound);
+            }
+
+            return output;
+        }
+
+        private static Dictionary<Guid, WasFound<Project>> HasProjects(IEnumerable<Project> projects, IEnumerable<Guid> projectIdentities)
+        {
+            var output = new Dictionary<Guid, WasFound<Project>>();
+
+            foreach (var projectIdentity in projectIdentities)
+            {
+                var hasProject = FileBasedProjectRepository.HasProject(projects, projectIdentity);
+
+                output.Add(projectIdentity, hasProject);
+            }
+
+            return output;
+        }
+
+        private static WasFound<Project> HasProject(IEnumerable<Project> projects, Guid identity)
+        {
+            var projectOrDefault = projects
+                .Where(xProject => xProject.Identity == identity)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectOrDefault);
+            return output;
+        }
+
+        private static WasFound<Project> HasProject(IEnumerable<Project> projects, string filePath)
+        {
+            var projectOrDefault = projects
+                .Where(xProject => xProject.FilePath == filePath)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectOrDefault);
+            return output;
+        }
+
+        private static WasFound<Project> HasProject(IEnumerable<Project> projects, string name, string filePath)
+        {
+            var projectOrDefault = projects
+                .Where(xProject => xProject.Name == name && xProject.FilePath == filePath)
+                .SingleOrDefault();
+
+            var output = WasFound.From(projectOrDefault);
+            return output;
+        }
+
+        private static WasFound<Project> HasProject(IEnumerable<Project> projects, Project project)
+        {
+            var wasFoundByIdentity = FileBasedProjectRepository.HasProject(projects, project.Identity);
+            if (wasFoundByIdentity)
+            {
+                return wasFoundByIdentity;
+            }
+
+            // Else.
+            var wasFoundByNameAndFilePath = FileBasedProjectRepository.HasProject(projects, project.Name, project.FilePath);
+            return wasFoundByNameAndFilePath;
+        }
+
+        #endregion
+
 
         private IProjectRepositoryFilePathsProvider ProjectRepositoryFilePathsProvider { get; }
 
@@ -28,57 +186,54 @@ namespace R5T.D0101.I001
             this.ProjectRepositoryFilePathsProvider = projectRepositoryFilePathsProvider;
         }
 
-        private bool IsEmpty()
+        //private bool IsEmpty()
+        //{
+        //    var output = true
+        //        && this.Projects.None()
+        //        && this.ProjectNameSelections.None()
+        //        && this.IgnoredProjectNames.None()
+        //        && this.DuplicateProjectNameSelections.None()
+        //        ;
+
+        //    return output;
+        //}
+
+        //public void ClearAll()
+        //{
+        //    this.DuplicateProjectNameSelections.Clear();
+        //    this.IgnoredProjectNames.Clear();
+        //    this.ProjectNameSelections.Clear();
+        //    this.Projects.Clear();
+        //}
+
+        ///// <summary>
+        ///// If the repository is not empty, empties it.
+        ///// </summary>
+        //public void EnsureIsEmpty()
+        //{
+        //    var isEmpty = this.IsEmpty();
+        //    if (!isEmpty)
+        //    {
+        //        this.ClearAll();
+        //    }
+        //}
+
+        ///// <summary>
+        ///// Throws an exception if the repository is not empty.
+        ///// </summary>
+        //public void VerifyIsEmpty()
+        //{
+        //    var isEmpty = this.IsEmpty();
+        //    if (!isEmpty)
+        //    {
+        //        throw new Exception("Repository is not empty.");
+        //    }
+        //}
+
+        #region Files Load/Save
+
+        private async Task<Project[]> LoadProjects()
         {
-            var output = true
-                && this.Projects.None()
-                && this.ProjectNameSelections.None()
-                && this.IgnoredProjectNames.None()
-                && this.DuplicateProjectNameSelections.None()
-                ;
-
-            return output;
-        }
-
-        public void ClearAll()
-        {
-            this.DuplicateProjectNameSelections.Clear();
-            this.IgnoredProjectNames.Clear();
-            this.ProjectNameSelections.Clear();
-            this.Projects.Clear();
-        }
-
-        /// <summary>
-        /// If the repository is not empty, empties it.
-        /// </summary>
-        public void EnsureIsEmpty()
-        {
-            var isEmpty = this.IsEmpty();
-            if (!isEmpty)
-            {
-                this.ClearAll();
-            }
-        }
-
-        /// <summary>
-        /// Throws an exception if the repository is not empty.
-        /// </summary>
-        public void VerifyIsEmpty()
-        {
-            var isEmpty = this.IsEmpty();
-            if (!isEmpty)
-            {
-                throw new Exception("Repository is not empty.");
-            }
-        }
-
-        #region IFileBasedProjectRepository
-
-        public async Task Load()
-        {
-            this.VerifyIsEmpty();
-
-            // Projects.
             var projectsListingJsonFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectsListingJsonFilePath();
 
             var projects = Instances.FileSystemOperator.FileExists(projectsListingJsonFilePath)
@@ -86,9 +241,21 @@ namespace R5T.D0101.I001
                 : Array.Empty<Project>()
                 ;
 
-            this.Projects.AddRange(projects);
+            return projects;
+        }
 
-            // Project name selections.
+        private async Task SaveProjects(IEnumerable<Project> projects)
+        {
+            var projectsListingJsonFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectsListingJsonFilePath();
+
+            Instances.FileSystemOperator.WriteToJsonFile(
+                projectsListingJsonFilePath,
+                projects
+                    .OrderAlphabetically(xProject => xProject.Name));
+        }
+
+        private async Task<ProjectNameSelection[]> LoadProjectNameSelections()
+        {
             var projectNameSelectionsTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectNameSelectionsTextFilePath();
 
             var projectNameValues = Instances.FileSystemOperator.FileExists(projectNameSelectionsTextFilePath)
@@ -97,7 +264,9 @@ namespace R5T.D0101.I001
                 ;
 
             // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
-            var projectsByFilePath = this.Projects.ToDictionary(xProject => xProject.FilePath);
+            var projects = await this.LoadProjects();
+
+            var projectsByFilePath = projects.ToDictionary(xProject => xProject.FilePath);
 
             var projectNameSelections = projectNameValues
                 .Select(xPair =>
@@ -112,64 +281,22 @@ namespace R5T.D0101.I001
 
                     return output;
                 })
+                .ToArray()
                 ;
 
-            this.ProjectNameSelections.AddRange(projectNameSelections);
-
-            // Ignored project names.
-            var ignoredProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetIgnoredProjectNamesTextFilePath();
-
-            var ignoredProjectNames = Instances.FileSystemOperator.FileExists(ignoredProjectNamesTextFilePath)
-                ? Instances.IgnoredValuesOperator.LoadIgnoredValues(ignoredProjectNamesTextFilePath)
-                : new HashSet<string>()
-                ;
-
-            this.IgnoredProjectNames.AddRange(ignoredProjectNames);
-
-            // Duplicate project name selections.
-            var duplicateProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetDuplicateProjectNamesTextFilePath();
-
-            var duplicateValueSelections = Instances.FileSystemOperator.FileExists(duplicateProjectNamesTextFilePath)
-                ? Instances.DuplicateValuesOperator.LoadDuplicateValueSelections(duplicateProjectNamesTextFilePath)
-                : new Dictionary<string, string>()
-                ;
-
-            // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
-            var duplicateProjectNameSelections = duplicateValueSelections
-                .Select(xPair =>
-                {
-                    var projectForFilePath = projectsByFilePath[xPair.Value];
-
-                    var output = new ProjectNameSelection
-                    {
-                        ProjectName = xPair.Key,
-                        ProjectIdentity = projectForFilePath.Identity
-                    };
-
-                    return output;
-                })
-                ;
-
-            this.DuplicateProjectNameSelections.AddRange(duplicateProjectNameSelections);
+            return projectNameSelections;
         }
 
-        public async Task Save()
+        private async Task SaveProjectNameSelections(IEnumerable<ProjectNameSelection> projectNameSelections)
         {
-            // Projects.
-            var projectsListingJsonFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectsListingJsonFilePath();
-
-            Instances.FileSystemOperator.WriteToJsonFile(
-                projectsListingJsonFilePath,
-                this.Projects
-                    .OrderAlphabetically(xProject => xProject.Name));
-
-            // Project name selections.
             var projectNameSelectionsTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectNameSelectionsTextFilePath();
 
             // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
-            var projectsByIdentity = this.Projects.ToDictionary(xProject => xProject.Identity);
+            var projects = await this.LoadProjects();
 
-            var projectNameValues = this.ProjectNameSelections
+            var projectsByIdentity = projects.ToDictionary(xProject => xProject.Identity);
+
+            var projectNameValues = projectNameSelections
                 .OrderAlphabetically(xProjectNameSelection => xProjectNameSelection.ProjectName)
                 .ToDictionary(
                     xProjectNameSelection => xProjectNameSelection.ProjectName,
@@ -184,20 +311,74 @@ namespace R5T.D0101.I001
             Instances.DuplicateValuesOperator.SaveDuplicateValueSelections(
                 projectNameSelectionsTextFilePath,
                 projectNameValues);
+        }
 
-            // Ignored project names.
+        private async Task<string[]> LoadIgnoredProjectNames()
+        {
+            var ignoredProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetIgnoredProjectNamesTextFilePath();
+
+            var ignoredProjectNames = Instances.FileSystemOperator.FileExists(ignoredProjectNamesTextFilePath)
+                ? Instances.IgnoredValuesOperator.LoadIgnoredValues(ignoredProjectNamesTextFilePath)
+                : new HashSet<string>()
+                ;
+
+            var output = ignoredProjectNames.ToArray();
+            return output;
+        }
+
+        private async Task SaveIgnoredProjectNames(IEnumerable<string> ignoredProjectNames)
+        {
             var ignoredProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetIgnoredProjectNamesTextFilePath();
 
             Instances.IgnoredValuesOperator.SaveIgnoredValues(
                 ignoredProjectNamesTextFilePath,
-                this.IgnoredProjectNames
+                ignoredProjectNames
                     .OrderAlphabetically());
+        }
 
-            // Duplicate project name selections.
+        private async Task<ProjectNameSelection[]> LoadDuplicateProjectNameSelections()
+        {
+            var duplicateProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetDuplicateProjectNamesTextFilePath();
+
+            var duplicateValueSelections = Instances.FileSystemOperator.FileExists(duplicateProjectNamesTextFilePath)
+                ? Instances.DuplicateValuesOperator.LoadDuplicateValueSelections(duplicateProjectNamesTextFilePath)
+                : new Dictionary<string, string>()
+                ;
+
+            // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
+            var projects = await this.LoadProjects();
+
+            var projectsByFilePath = projects.ToDictionary(xProject => xProject.FilePath);
+
+            var duplicateProjectNameSelections = duplicateValueSelections
+                .Select(xPair =>
+                {
+                    var projectForFilePath = projectsByFilePath[xPair.Value];
+
+                    var output = new ProjectNameSelection
+                    {
+                        ProjectName = xPair.Key,
+                        ProjectIdentity = projectForFilePath.Identity
+                    };
+
+                    return output;
+                })
+                .ToArray()
+                ;
+
+            return duplicateProjectNameSelections;
+        }
+
+        private async Task SaveDuplicateProjectNameSelections(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections)
+        {
             var duplicateProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetDuplicateProjectNamesTextFilePath();
 
             // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
-            var duplicateProjectNameValues = this.DuplicateProjectNameSelections
+            var projects = await this.LoadProjects();
+
+            var projectsByIdentity = projects.ToDictionary(xProject => xProject.Identity);
+
+            var duplicateProjectNameValues = duplicateProjectNameSelections
                 .OrderAlphabetically(xDuplicateProjectNameSelection => xDuplicateProjectNameSelection.ProjectName)
                 .ToDictionary(
                     xDuplicateProjectNameSelection => xDuplicateProjectNameSelection.ProjectName,
@@ -220,144 +401,233 @@ namespace R5T.D0101.I001
         {
             project.SetIdentityIfNotSet();
 
-            var hasProject = await this.HasProject(project);
+            var projects = await this.LoadProjects();
+
+            var hasProject = FileBasedProjectRepository.HasProject(projects, project);
             if (hasProject)
             {
                 throw new Exception("Project already exists.");
             }
 
-            this.Projects.Add(project);
+            // Else, modify and save.
+            var modifiedProjects = projects.Append(project);
+
+            await this.SaveProjects(modifiedProjects);
+        }
+
+        public async Task AddProjects(IEnumerable<Project> newProjects)
+        {
+            newProjects.SetIdentitiesIfNotSet();
+
+            var projects = await this.LoadProjects();
+
+            // Do new projects already exist?
+            var hasProjectByProject = FileBasedProjectRepository.HasProjects(projects, newProjects);
+
+            var anyProjectsExist = hasProjectByProject
+                .Where(xPair => xPair.Value.Exists)
+                .Any();
+
+            if(anyProjectsExist)
+            {
+                throw new Exception("Some projects already exist.");
+            }
+
+            var modifiedProjects = projects.AppendRange(newProjects);
+
+            await this.SaveProjects(modifiedProjects);
         }
 
         public async Task<WasFound<Project>> HasProject(Project project)
         {
-            var wasFoundByIdentity = await this.HasProject(project.Identity);
-            if (wasFoundByIdentity)
-            {
-                return wasFoundByIdentity;
-            }
+            var projects = await this.LoadProjects();
 
-            // Else.
-            var wasFoundByNameAndFilePath = await this.HasProject(project.Name, project.FilePath);
-            return wasFoundByNameAndFilePath;
+            var output = FileBasedProjectRepository.HasProject(projects, project);
+            return output;
         }
 
-        public Task<WasFound<Project>> HasProject(Guid identity)
+        public async Task<WasFound<Project>> HasProject(Guid identity)
         {
-            var projectOrDefault = this.Projects
-                .Where(xProject => xProject.Identity == identity)
-                .SingleOrDefault();
+            var projects = await this.LoadProjects();
 
-            var output = WasFound.From(projectOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasProject(projects, identity);
+            return output;
         }
 
-        public Task<WasFound<Project[]>> HasProjects(string name)
+        public async Task<WasFound<Project[]>> HasProjects(string name)
         {
-            var projectOrDefault = this.Projects
+            var projects = await this.LoadProjects();
+
+            var projectOrDefault = projects
                 .Where(xProject => xProject.Name == name)
                 .ToArray();
 
             var output = WasFound.From(projectOrDefault);
-
-            return Task.FromResult(output);
+            return output;
         }
 
-        public Task<WasFound<Project>> HasProject(string filePath)
+        public async Task<WasFound<Project>> HasProject(string filePath)
         {
-            var projectOrDefault = this.Projects
-                .Where(xProject => xProject.FilePath == filePath)
-                .SingleOrDefault();
+            var projects = await this.LoadProjects();
 
-            var output = WasFound.From(projectOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasProject(projects, filePath);
+            return output;
         }
 
-        public Task<WasFound<Project>> HasProject(string name, string filePath)
+        public async Task<WasFound<Project>> HasProject(string name, string filePath)
         {
-            var projectOrDefault = this.Projects
-                .Where(xProject => xProject.Name == name && xProject.FilePath == filePath)
-                .SingleOrDefault();
+            var projects = await this.LoadProjects();
 
-            var output = WasFound.From(projectOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasProject(projects, name, filePath);
+            return output;
         }
 
         public async Task<bool> DeleteProject(Guid projectIdentity)
         {
-            var wasFound = await this.HasProject(projectIdentity);
+            var projects = await this.LoadProjects();
+
+            var wasFound = FileBasedProjectRepository.HasProject(projects, projectIdentity);
             if (wasFound)
             {
-                this.Projects.Remove(wasFound.Result);
+                var modifiedProjects = projects
+                    .Except(wasFound.Result, NamedIdentifiedFilePathedEqualityComparer<Project>.Instance)
+                    ;
+
+                await this.SaveProjects(modifiedProjects);
             }
 
             return wasFound;
         }
 
+        public async Task<Dictionary<Guid, bool>> DeleteProjects(IEnumerable<Guid> projectIdentities)
+        {
+            var projects = await this.LoadProjects();
+
+            var projectIdentitiesHash = new HashSet<Guid>(projectIdentities);
+
+            var output = new Dictionary<Guid, bool>();
+
+            var modifiedProjects = projects
+                .Where(xProject =>
+                {
+                    var projectIdentity = xProject.Identity;
+
+                    var removeProject = projectIdentitiesHash.Contains(projectIdentity);
+                    if (removeProject)
+                    {
+                        output.Add(projectIdentity, true);
+                    }
+                    else
+                    {
+                        output.Add(projectIdentity, false);
+                    }
+
+                    var keepProject = !removeProject;
+                    return keepProject;
+                })
+                ;
+
+            await this.SaveProjects(modifiedProjects);
+
+            return output;
+        }
+
         public async Task AddProjectNameSelection(ProjectNameSelection projectNameSelection)
         {
-            var wasFound = await this.HasProjectNameSelection(projectNameSelection);
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectNameSelection);
             if (wasFound)
             {
                 throw new Exception("Project name selection already exists.");
             }
 
-            this.ProjectNameSelections.Add(projectNameSelection);
+            // Else, modify and save.
+            var modifiedProjectNameSelections = projectNameSelections
+                .Append(projectNameSelection)
+                ;
+
+            await this.SaveProjectNameSelections(modifiedProjectNameSelections);
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(ProjectNameSelection projectNameSelection)
+        public async Task AddProjectNameSelections(IEnumerable<ProjectNameSelection> projectNameSelections)
         {
-            var projectNameSelectionOrDefault = this.ProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectNameSelection.ProjectName && xProjectNameSelection.ProjectIdentity == projectNameSelection.ProjectIdentity)
-                .SingleOrDefault();
+            var repositoryProjectNameSelections = await this.LoadProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
+            var hasProjectNameSelectionByProjectNameSelection = FileBasedProjectRepository.HasProjectNameSelections(
+                repositoryProjectNameSelections,
+                projectNameSelections);
 
-            return Task.FromResult(output);
+            var anyProjectNameSelectionsExist = hasProjectNameSelectionByProjectNameSelection
+                .Where(xPair => xPair.Value.Exists)
+                .Any();
+
+            if (anyProjectNameSelectionsExist)
+            {
+                throw new Exception("Some project name selections already exists.");
+            }
+
+            var modifiedRepositoryProjectNameSelections = repositoryProjectNameSelections.AppendRange(projectNameSelections);
+
+            await this.SaveProjectNameSelections(modifiedRepositoryProjectNameSelections);
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(string projectName)
+        public async Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(ProjectNameSelection projectNameSelection)
         {
-            var projectNameSelectionOrDefault = this.ProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectName)
-                .SingleOrDefault();
+            var projectNameSelections = await this.LoadProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectNameSelection);
+            return output;
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(Guid projectIdentity)
+        public async Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(string projectName)
         {
-            var projectNameSelectionOrDefault = this.ProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectIdentity == projectIdentity)
-                .SingleOrDefault();
+            var projectNameSelections = await this.LoadProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
+            var output = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectName);
+            return output;
+        }
 
-            return Task.FromResult(output);
+        public async Task<WasFound<ProjectNameSelection>> HasProjectNameSelection(Guid projectIdentity)
+        {
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var output = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectIdentity);
+            return output;
         }
 
         public async Task UpdateProjectNameSelection(string projectName, Guid newProjectIdentity)
         {
-            var wasFound = await this.HasProjectNameSelection(projectName);
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectName);
             if (!wasFound)
             {
                 throw new Exception("Project name selection does not exist.");
             }
 
-            wasFound.Result.ProjectIdentity = newProjectIdentity;
+            // Else, modify and save.
+            var projectNameSelection = projectNameSelections
+                .Where(x => x.ProjectName == projectName)
+                .Single();
+
+            projectNameSelection.ProjectIdentity = newProjectIdentity;
+
+            await this.SaveProjectNameSelections(projectNameSelections);
         }
 
         public async Task<bool> DeleteProjectNameSelection(Guid projectIdentity)
         {
-            var wasFound = await this.HasProjectNameSelection(projectIdentity);
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectIdentity);
             if (wasFound)
             {
-                this.ProjectNameSelections.Remove(wasFound.Result);
+                var modifiedProjectNameSelections = projectNameSelections
+                    .Where(x => x.ProjectIdentity != projectIdentity)
+                    ;
+
+                await this.SaveProjectNameSelections(projectNameSelections);
             }
 
             return wasFound;
@@ -365,32 +635,42 @@ namespace R5T.D0101.I001
 
         public async Task AddIgnoredProjectName(string projectName)
         {
-            var wasFound = await this.HasIgnoredProjectName(projectName);
+            var ignoredProjectNames = await this.LoadIgnoredProjectNames();
+
+            var wasFound = FileBasedProjectRepository.HasIgnoredProjectName(ignoredProjectNames, projectName);
             if (wasFound)
             {
                 throw new Exception("Ignored project name already exists");
             }
 
-            this.IgnoredProjectNames.Add(projectName);
+            // Else, modify and save.
+            var modifiedIgnoredProjectNames = ignoredProjectNames
+                .Append(projectName)
+                ;
+
+            await this.SaveIgnoredProjectNames(modifiedIgnoredProjectNames);
         }
 
-        public Task<WasFound<string>> HasIgnoredProjectName(string projectName)
+        public async Task<WasFound<string>> HasIgnoredProjectName(string projectName)
         {
-            var projectNameOrDefault = this.IgnoredProjectNames
-                .Where(xProjectName => xProjectName == projectName)
-                .SingleOrDefault();
+            var ignoredProjectNames = await this.LoadIgnoredProjectNames();
 
-            var output = WasFound.From(projectNameOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasIgnoredProjectName(ignoredProjectNames, projectName);
+            return output;
         }
 
         public async Task<bool> DeleteIgnoredProjectName(string projectName)
         {
-            var wasFound = await this.HasIgnoredProjectName(projectName);
+            var ignoredProjectNames = await this.LoadIgnoredProjectNames();
+
+            var wasFound = FileBasedProjectRepository.HasIgnoredProjectName(ignoredProjectNames, projectName);
             if (wasFound)
             {
-                this.IgnoredProjectNames.Remove(projectName);
+                var modifiedIgnoredProjectNames = ignoredProjectNames
+                    .Where(x => x != projectName)
+                    ;
+
+                await this.SaveIgnoredProjectNames(modifiedIgnoredProjectNames);
             }
 
             return wasFound;
@@ -398,152 +678,214 @@ namespace R5T.D0101.I001
 
         public async Task AddDuplicateProjectNameSelection(ProjectNameSelection duplicateProjectNameSelection)
         {
-            var wasFound = await this.HasDuplicateProjectNameSelection(duplicateProjectNameSelection);
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, duplicateProjectNameSelection);
             if (wasFound)
             {
                 throw new Exception("Duplicate project name selection already exists.");
             }
 
-            this.DuplicateProjectNameSelections.Add(duplicateProjectNameSelection);
+            // Else, modify and save.
+            var modifiedDuplicateProjectNameSelections = duplicateProjectNameSelections
+                .Append(duplicateProjectNameSelection)
+                ;
+
+            await this.SaveDuplicateProjectNameSelections(modifiedDuplicateProjectNameSelections);
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(ProjectNameSelection projectNameSelection)
+        public async Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(ProjectNameSelection projectNameSelection)
         {
-            var projectNameSelectionOrDefault = this.DuplicateProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectNameSelection.ProjectName && xProjectNameSelection.ProjectIdentity == projectNameSelection.ProjectIdentity)
-                .SingleOrDefault();
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectNameSelection);
+            return output;
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(string projectName)
+        public async Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(string projectName)
         {
-            var projectNameSelectionOrDefault = this.DuplicateProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectName == projectName)
-                .SingleOrDefault();
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectName);
+            return output;
         }
 
-        public Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(Guid projectIdentity)
+        public async Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(Guid projectIdentity)
         {
-            var projectNameSelectionOrDefault = this.DuplicateProjectNameSelections
-                .Where(xProjectNameSelection => xProjectNameSelection.ProjectIdentity == projectIdentity)
-                .SingleOrDefault();
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
 
-            var output = WasFound.From(projectNameSelectionOrDefault);
-
-            return Task.FromResult(output);
+            var output = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectIdentity);
+            return output;
         }
 
         public async Task UpdateDuplicateProjectNameSelection(string projectName, Guid newProjectIdentity)
         {
-            var wasFound = await this.HasDuplicateProjectNameSelection(projectName);
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectName);
             if (!wasFound)
             {
                 throw new Exception("Duplicate project name selection does not exist.");
             }
 
-            wasFound.Result.ProjectIdentity = newProjectIdentity;
+            // Else modify and save.
+            var duplicateProjectNameSelection = duplicateProjectNameSelections
+                .Where(x => x.ProjectName == projectName)
+                .Single();
+
+            duplicateProjectNameSelection.ProjectIdentity = newProjectIdentity;
+
+            await this.SaveDuplicateProjectNameSelections(duplicateProjectNameSelections);
         }
 
         public async Task<bool> DeleteDuplicateProjectNameSelection(Guid projectIdentity)
         {
-            var wasFound = await this.HasDuplicateProjectNameSelection(projectIdentity);
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectIdentity);
             if (wasFound)
             {
-                this.DuplicateProjectNameSelections.Remove(wasFound.Result);
+                var modifiedDuplicateProjectNameSelections = duplicateProjectNameSelections
+                    .Where(x => x.ProjectIdentity != projectIdentity)
+                    ;
+
+                await this.SaveDuplicateProjectNameSelections(modifiedDuplicateProjectNameSelections);
             }
 
             return wasFound;
         }
 
-        public Task<string[]> GetAllProjectFilePaths()
+        public async Task<string[]> GetAllProjectFilePaths()
         {
-            var output = this.Projects
+            var projects = await this.LoadProjects();
+
+            var output = projects
                 .Select(xProject => xProject.FilePath)
                 .ToArray();
 
-            return Task.FromResult(output);
+            return output;
         }
 
         public async Task<bool> DeleteProject(string filePath)
         {
-            var wasFound = await this.HasProject(filePath);
+            var projects = await this.LoadProjects();
+
+            var wasFound = FileBasedProjectRepository.HasProject(projects, filePath);
             if (wasFound)
             {
-                this.Projects.Remove(wasFound.Result);
+                var modifiedProjects = projects
+                    .Where(x => x.FilePath != filePath)
+                    ;
+
+                await this.SaveProjects(modifiedProjects);
             }
 
             return wasFound;
         }
 
-        public Task<Project[]> GetAllProjects()
+        public async Task<Project[]> GetAllProjects()
         {
-            var output = this.Projects.ToArray();
-
-            return Task.FromResult(output);
+            var projects = await this.LoadProjects();
+            return projects;
         }
 
-        public Task<string[]> GetAllIgnoredProjectNames()
+        public async Task<string[]> GetAllIgnoredProjectNames()
         {
-            var output = this.IgnoredProjectNames.ToArray();
-
-            return Task.FromResult(output);
+            var ignoredProjectNames = await this.LoadIgnoredProjectNames();
+            return ignoredProjectNames;
         }
 
-        public Task<ProjectNameSelection[]> GetAllDuplicateProjectNameSelections()
+        public async Task<ProjectNameSelection[]> GetAllDuplicateProjectNameSelections()
         {
-            var output = this.DuplicateProjectNameSelections.ToArray();
-
-            return Task.FromResult(output);
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+            return duplicateProjectNameSelections;
         }
 
-        public Task<ProjectNameSelection[]> GetAllProjectNameSelections()
+        public async Task<ProjectNameSelection[]> GetAllProjectNameSelections()
         {
-            var output = this.ProjectNameSelections.ToArray();
-
-            return Task.FromResult(output);
+            var allProjectNameSelections = await this.LoadProjectNameSelections();
+            return allProjectNameSelections;
         }
 
         public async Task<bool> DeleteProjectNameSelection(string projectName)
         {
-            var wasFound = await this.HasProjectNameSelection(projectName);
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasProjectNameSelection(projectNameSelections, projectName);
             if (wasFound)
             {
-                this.ProjectNameSelections.Remove(wasFound.Result);
+                var modifiedProjectNameSelections = projectNameSelections
+                    .Where(x => x.ProjectName != projectName)
+                    ;
+
+                await this.SaveProjectNameSelections(modifiedProjectNameSelections);
             }
 
             return wasFound;
+        }
+
+        public async Task<Dictionary<string, bool>> DeleteProjectNameSelections(IEnumerable<string> projectNames)
+        {
+            var projectNameSelections = await this.LoadProjectNameSelections();
+
+            var projectNamesHash = new HashSet<string>(projectNames);
+
+            var output = new Dictionary<string, bool>();
+
+            var modifiedProjectNameSelections = projectNameSelections
+                .Where(xProjectNameSelection =>
+                {
+                    var projectName = xProjectNameSelection.ProjectName;
+
+                    var removeProject = projectNamesHash.Contains(projectName);
+                    if (removeProject)
+                    {
+                        output.Add(projectName, true);
+                    }
+                    else
+                    {
+                        output.Add(projectName, false);
+                    }
+
+                    var keepProject = !removeProject;
+                    return keepProject;
+                })
+                ;
+
+            await this.SaveProjectNameSelections(modifiedProjectNameSelections);
+
+            return output;
         }
 
         public async Task<bool> DeleteDuplicateProjectNameSelection(string projectName)
         {
-            var wasFound = await this.HasDuplicateProjectNameSelection(projectName);
+            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+
+            var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, projectName);
             if (wasFound)
             {
-                this.DuplicateProjectNameSelections.Remove(wasFound.Result);
+                var modifiedDuplicateProjectNameSelections = duplicateProjectNameSelections
+                    .Where(x => x.ProjectName != projectName)
+                    ;
+
+                await this.SaveDuplicateProjectNameSelections(modifiedDuplicateProjectNameSelections);
             }
 
             return wasFound;
         }
 
-        public Task ClearAllProjectNameSelections()
+        public async Task ClearAllProjectNameSelections()
         {
-            this.ProjectNameSelections.Clear();
-
-            return Task.CompletedTask;
+            await this.SaveProjectNameSelections(EnumerableHelper.Empty<ProjectNameSelection>());
         }
 
-        public Task<Dictionary<string, WasFound<Project>>> HasProjectsByFilePath(IEnumerable<string> filePaths)
+        public async Task<Dictionary<string, WasFound<Project>>> HasProjectsByFilePath(IEnumerable<string> filePaths)
         {
+            var projects = await this.LoadProjects();
+
             var filePathsSet = new HashSet<string>(filePaths);
 
-            var foundProjects = this.Projects
+            var foundProjects = projects
                 .Where(xProject => filePathsSet.Contains(xProject.FilePath))
                 ;
 
@@ -561,7 +903,7 @@ namespace R5T.D0101.I001
                     x => x.Item1,
                     x => x.Item2);
 
-            return Task.FromResult(output);
+            return output;
         }
     }
 }
