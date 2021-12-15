@@ -49,14 +49,15 @@ namespace System
         public static async Task<Dictionary<Guid, bool>> DeleteProjectsAndDependentData(this IProjectRepository projectRepository,
             IEnumerable<Project> projects)
         {
-            var output = await projectRepository.DeleteProjectsOnly(projects);
-
+            // Delete dependent data first.
             var projectNames = projects
                 .Select(xProject => xProject.Name)
                 ;
 
             await projectRepository.DeleteProjectNameSelections(projectNames);
 
+            // Now delete projects.
+            var output = await projectRepository.DeleteProjectsOnly(projects);
             return output;
         }
 
@@ -129,6 +130,22 @@ namespace System
                 .ToArray();
 
             return duplicateProjectNames;
+        }
+
+        public static async Task<Project[]> GetSelectedProjects(this IProjectRepository projectRepository)
+        {
+            var (projects, selectedProjectNames) = await TaskHelper.WhenAll(
+                projectRepository.GetAllProjects(),
+                projectRepository.GetAllProjectNameSelections());
+
+            var selectedProjectIdentitiesHash = new HashSet<Guid>(selectedProjectNames
+                .Select(x => x.ProjectIdentity));
+
+            var selectedProjects = projects
+                .Where(xProject => selectedProjectIdentitiesHash.Contains(xProject.Identity))
+                .ToArray();
+
+            return selectedProjects;
         }
     }
 }

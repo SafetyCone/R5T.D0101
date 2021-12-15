@@ -117,19 +117,19 @@ namespace R5T.D0101.I001
             return output;
         }
 
-        private static Dictionary<Guid, WasFound<Project>> HasProjects(IEnumerable<Project> projects, IEnumerable<Guid> projectIdentities)
-        {
-            var output = new Dictionary<Guid, WasFound<Project>>();
+        //private static Dictionary<Guid, WasFound<Project>> HasProjects(IEnumerable<Project> projects, IEnumerable<Guid> projectIdentities)
+        //{
+        //    var output = new Dictionary<Guid, WasFound<Project>>();
 
-            foreach (var projectIdentity in projectIdentities)
-            {
-                var hasProject = FileBasedProjectRepository.HasProject(projects, projectIdentity);
+        //    foreach (var projectIdentity in projectIdentities)
+        //    {
+        //        var hasProject = FileBasedProjectRepository.HasProject(projects, projectIdentity);
 
-                output.Add(projectIdentity, hasProject);
-            }
+        //        output.Add(projectIdentity, hasProject);
+        //    }
 
-            return output;
-        }
+        //    return output;
+        //}
 
         private static WasFound<Project> HasProject(IEnumerable<Project> projects, Guid identity)
         {
