@@ -38,6 +38,13 @@ namespace R5T.D0101
         /// </summary>
         Task<WasFound<Project>> HasProject(string filePath);
 
+        Task<WasFound<T>> HasProjectSelect<T>(Func<IProject, bool> predicate, Func<IProject, T> selector);
+
+        Task<Dictionary<TKey, WasFound<TValue>>> HasProjectValues<TKey, TValue>(
+            IEnumerable<TKey> keys,
+            Func<IProject, TKey> keySelector,
+            Func<IProject, TValue> valueSelector);
+
         Task<Dictionary<string, WasFound<Project>>> HasProjectsByFilePath(IEnumerable<string> filePaths);
 
         /// <summary>

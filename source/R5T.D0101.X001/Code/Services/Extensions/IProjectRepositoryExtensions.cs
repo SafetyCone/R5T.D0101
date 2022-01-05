@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using R5T.Magyar;
+
 using R5T.D0101;
 using R5T.T0097;
+
+using Instances = R5T.D0101.X001.Instances;
 
 
 namespace System
@@ -78,6 +82,68 @@ namespace System
             return output;
         }
 
+        public static Guid GetProjectIdentity(this IProjectRepository _,
+            string identityString)
+        {
+            var identity = Instances.GuidOperator.FromStringStandard(identityString);
+            return identity;
+        }
+
+        public static async Task<Project> GetProject(this IProjectRepository projectRepository,
+            Guid identity)
+        {
+            var hasProject = await projectRepository.HasProject(identity);
+            if(!hasProject)
+            {
+                throw new Exception($"Project not found for identity '{identity}'");
+            }
+
+            return hasProject.Result;
+        }
+
+        public static async Task<Dictionary<Guid, WasFound<string>>> HasProjectFilePaths(this IProjectRepository projectRepository,
+            IEnumerable<Guid> projectIdentities)
+        {
+            var output = await projectRepository.HasProjectValues(
+                projectIdentities,
+                Instances.Selector.SelectIdentity<IProject>(),
+                Instances.Selector.SelectFilePath<IProject>());
+
+            return output;
+        }
+
+        public static async Task<Dictionary<Guid, string>> GetProjectFilePaths(this IProjectRepository projectRepository,
+            IEnumerable<Guid> projectIdentities)
+        {
+            var output = await projectRepository.GetProjectValues(
+                projectIdentities,
+                Instances.Selector.SelectIdentity<IProject>(),
+                Instances.Selector.SelectFilePath<IProject>());
+
+            return output;
+        }
+
+        public static async Task<WasFound<string>> HasProjectFilePath(this IProjectRepository projectRepository,
+            Guid identity)
+        {
+            var hasProjectFilePaths = await projectRepository.HasProjectFilePaths(EnumerableHelper.From(identity));
+
+            var output = hasProjectFilePaths[identity];
+            return output;
+        }
+
+        public static async Task<string> GetProjectFilePath(this IProjectRepository projectRepository,
+            Guid identity)
+        {
+            var hasProjectFilepath = await projectRepository.HasProjectFilePath(identity);
+            if(!hasProjectFilepath)
+            {
+                throw new Exception($"Project not found for identity: '{identity}'.");
+            }
+
+            return hasProjectFilepath.Result;
+        }
+
         /// <summary>
         /// Will throw if any of the project file paths are not found.
         /// For the non-throwing version, see <see cref="IProjectRepository.HasProjectsByFilePath(IEnumerable{string})"/>.
@@ -146,6 +212,30 @@ namespace System
                 .ToArray();
 
             return selectedProjects;
+        }
+
+        public static async Task<Dictionary<TKey, TValue>> GetProjectValues<TKey, TValue>(this IProjectRepository projectRepository,
+            IEnumerable<TKey> keys,
+            Func<IProject, TKey> keySelector,
+            Func<IProject, TValue> valueSelector)
+        {
+            var hasProjectValues = await projectRepository.HasProjectValues(
+                keys,
+                keySelector,
+                valueSelector);
+
+            var anyNotFound = hasProjectValues.AnyNotFound();
+            if(anyNotFound)
+            {
+                var keysNotFound = hasProjectValues.GetKeysNotFound();
+
+                var keysNotFoundList = Instances.StringOperator.FormatAsList(keysNotFound);
+
+                throw new Exception($"Some keys were not found: {keysNotFoundList}");
+            }
+
+            var output = hasProjectValues.ToDictionaryFromWasFounds();
+            return output;
         }
     }
 }

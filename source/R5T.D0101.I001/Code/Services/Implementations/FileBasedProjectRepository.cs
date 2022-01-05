@@ -353,6 +353,20 @@ namespace R5T.D0101.I001
             var duplicateProjectNameSelections = duplicateValueSelections
                 .Select(xPair =>
                 {
+                    // The file path will not exist in the case of a new duplicate projects.
+                    // Just fill in an default identity value in this case, since it will be fine later. Only the project name will be used for duplicate testing purposes, and in regular operation there will always be a file path.
+                    var filePathExists = projectsByFilePath.ContainsKey(xPair.Value);
+                    if(!filePathExists)
+                    {
+                        var specialOutput = new ProjectNameSelection
+                        {
+                            ProjectName = xPair.Key,
+                            ProjectIdentity = Instances.GuidOperator.DefaultGuid(),
+                        };
+
+                        return specialOutput;
+                    }
+
                     var projectForFilePath = projectsByFilePath[xPair.Value];
 
                     var output = new ProjectNameSelection
@@ -479,6 +493,20 @@ namespace R5T.D0101.I001
             var projects = await this.LoadProjects();
 
             var output = FileBasedProjectRepository.HasProject(projects, name, filePath);
+            return output;
+        }
+
+        public async Task<WasFound<T>> HasProjectSelect<T>(Func<IProject, bool> predicate, Func<IProject, T> selector)
+        {
+            var projects = await this.LoadProjects();
+
+            var valueOrDefault = projects
+                .Where(predicate)
+                .Select(selector)
+                .SingleOrDefault()
+                ;
+
+            var output = WasFound.From(valueOrDefault);
             return output;
         }
 
@@ -902,6 +930,25 @@ namespace R5T.D0101.I001
                 .ToDictionary(
                     x => x.Item1,
                     x => x.Item2);
+
+            return output;
+        }
+
+        public async Task<Dictionary<TKey, WasFound<TValue>>> HasProjectValues<TKey, TValue>(
+            IEnumerable<TKey> keys,
+            Func<IProject, TKey> keySelector,
+            Func<IProject, TValue> valueSelector)
+        {
+            var projects = await this.LoadProjects();
+
+            var valuesOrDefault = from key in keys
+                join project in projects on key equals keySelector(project) into projectGroup
+                from projectOrDefault in projectGroup.DefaultIfEmpty()
+                select new { Key = key, Value = valueSelector(projectOrDefault) };
+
+            var output = valuesOrDefault.ToDictionary(
+                x => x.Key,
+                x => WasFound.From(x.Value));
 
             return output;
         }
