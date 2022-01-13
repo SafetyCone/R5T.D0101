@@ -15,6 +15,18 @@ namespace System
 {
     public static class IProjectRepositoryExtensions
     {
+        public static async Task AddDuplicateProjectNameSelection(this IProjectRepository projectRepository,
+            ProjectNameSelection duplicateProjectNameSelection)
+        {
+            await projectRepository.AddDuplicateProjectNameSelections(EnumerableHelper.From(duplicateProjectNameSelection));
+        }
+
+        public static async Task AddIgnoredProjectName(this IProjectRepository projectRepository,
+            string projectName)
+        {
+            await projectRepository.AddIgnoredProjectNames(EnumerableHelper.From(projectName));
+        }
+
         public static async Task<bool> DeleteProjectOnly(this IProjectRepository projectRepository,
             Project project)
         {

@@ -106,7 +106,7 @@ namespace R5T.D0101
 
         #region Ignored Project Names
 
-        Task AddIgnoredProjectName(string projectName);
+        Task AddIgnoredProjectNames(IEnumerable<string> projectNames);
 
         Task<WasFound<string>> HasIgnoredProjectName(string projectName);
 
@@ -116,11 +116,13 @@ namespace R5T.D0101
 
         Task<bool> DeleteIgnoredProjectName(string projectName);
 
+        Task ClearAllIgnoredProjectNames();
+
         #endregion
 
         #region Duplicate Project Name Selections
 
-        Task AddDuplicateProjectNameSelection(ProjectNameSelection duplicateProjectNameSelection);
+        Task AddDuplicateProjectNameSelections(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections);
 
         Task<WasFound<ProjectNameSelection>> HasDuplicateProjectNameSelection(ProjectNameSelection projectNameSelection);
 
@@ -141,6 +143,8 @@ namespace R5T.D0101
         Task<bool> DeleteDuplicateProjectNameSelection(string projectName);
 
         Task<bool> DeleteDuplicateProjectNameSelection(Guid projectIdentity);
+
+        Task ClearAllDuplicateProjectNameSelections();
 
         #endregion
     }

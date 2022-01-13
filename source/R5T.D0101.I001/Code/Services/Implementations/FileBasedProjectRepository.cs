@@ -8,6 +8,7 @@ using R5T.Magyar;
 using R5T.T0094;
 using R5T.T0097;
 using R5T.T0064;
+using R5T.T0097.X002;
 
 
 namespace R5T.D0101.I001
@@ -258,31 +259,11 @@ namespace R5T.D0101.I001
         {
             var projectNameSelectionsTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetProjectNameSelectionsTextFilePath();
 
-            var projectNameValues = Instances.FileSystemOperator.FileExists(projectNameSelectionsTextFilePath)
-                ? Instances.DuplicateValuesOperator.LoadDuplicateValueSelections(projectNameSelectionsTextFilePath)
-                : new Dictionary<string, string>()
-                ;
-
-            // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
             var projects = await this.LoadProjects();
 
-            var projectsByFilePath = projects.ToDictionary(xProject => xProject.FilePath);
-
-            var projectNameSelections = projectNameValues
-                .Select(xPair =>
-                {
-                    var projectForFilePath = projectsByFilePath[xPair.Value];
-
-                    var output = new ProjectNameSelection
-                    {
-                        ProjectName = xPair.Key,
-                        ProjectIdentity = projectForFilePath.Identity
-                    };
-
-                    return output;
-                })
-                .ToArray()
-                ;
+            var projectNameSelections = await Instances.Operation.LoadProjectNameSelections(
+                projectNameSelectionsTextFilePath,
+                projects);
 
             return projectNameSelections;
         }
@@ -294,33 +275,17 @@ namespace R5T.D0101.I001
             // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
             var projects = await this.LoadProjects();
 
-            var projectsByIdentity = projects.ToDictionary(xProject => xProject.Identity);
-
-            var projectNameValues = projectNameSelections
-                .OrderAlphabetically(xProjectNameSelection => xProjectNameSelection.ProjectName)
-                .ToDictionary(
-                    xProjectNameSelection => xProjectNameSelection.ProjectName,
-                    xProjectNameSelection =>
-                    {
-                        var projectForIdentity = projectsByIdentity[xProjectNameSelection.ProjectIdentity];
-
-                        var projectFilePath = projectForIdentity.FilePath;
-                        return projectFilePath;
-                    });
-
-            Instances.DuplicateValuesOperator.SaveDuplicateValueSelections(
+            await Instances.Operation.SaveProjectNameSelections(
                 projectNameSelectionsTextFilePath,
-                projectNameValues);
+                projectNameSelections,
+                projects);
         }
 
         private async Task<string[]> LoadIgnoredProjectNames()
         {
             var ignoredProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetIgnoredProjectNamesTextFilePath();
 
-            var ignoredProjectNames = Instances.FileSystemOperator.FileExists(ignoredProjectNamesTextFilePath)
-                ? Instances.IgnoredValuesOperator.LoadIgnoredValues(ignoredProjectNamesTextFilePath)
-                : new HashSet<string>()
-                ;
+            var ignoredProjectNames = await Instances.IgnoredValuesOperator.LoadIgnoredValuesReturnEmptyIfNotExists(ignoredProjectNamesTextFilePath);
 
             var output = ignoredProjectNames.ToArray();
             return output;
@@ -330,7 +295,7 @@ namespace R5T.D0101.I001
         {
             var ignoredProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetIgnoredProjectNamesTextFilePath();
 
-            Instances.IgnoredValuesOperator.SaveIgnoredValues(
+            await Instances.IgnoredValuesOperator.SaveIgnoredValues(
                 ignoredProjectNamesTextFilePath,
                 ignoredProjectNames
                     .OrderAlphabetically());
@@ -340,45 +305,11 @@ namespace R5T.D0101.I001
         {
             var duplicateProjectNamesTextFilePath = await this.ProjectRepositoryFilePathsProvider.GetDuplicateProjectNamesTextFilePath();
 
-            var duplicateValueSelections = Instances.FileSystemOperator.FileExists(duplicateProjectNamesTextFilePath)
-                ? Instances.DuplicateValuesOperator.LoadDuplicateValueSelections(duplicateProjectNamesTextFilePath)
-                : new Dictionary<string, string>()
-                ;
-
-            // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
             var projects = await this.LoadProjects();
 
-            var projectsByFilePath = projects.ToDictionary(xProject => xProject.FilePath);
-
-            var duplicateProjectNameSelections = duplicateValueSelections
-                .Select(xPair =>
-                {
-                    // The file path will not exist in the case of a new duplicate projects.
-                    // Just fill in an default identity value in this case, since it will be fine later. Only the project name will be used for duplicate testing purposes, and in regular operation there will always be a file path.
-                    var filePathExists = projectsByFilePath.ContainsKey(xPair.Value);
-                    if(!filePathExists)
-                    {
-                        var specialOutput = new ProjectNameSelection
-                        {
-                            ProjectName = xPair.Key,
-                            ProjectIdentity = Instances.GuidOperator.DefaultGuid(),
-                        };
-
-                        return specialOutput;
-                    }
-
-                    var projectForFilePath = projectsByFilePath[xPair.Value];
-
-                    var output = new ProjectNameSelection
-                    {
-                        ProjectName = xPair.Key,
-                        ProjectIdentity = projectForFilePath.Identity
-                    };
-
-                    return output;
-                })
-                .ToArray()
-                ;
+            var duplicateProjectNameSelections = await Instances.Operation.LoadProjectNameSelections(
+                duplicateProjectNamesTextFilePath,
+                projects);
 
             return duplicateProjectNameSelections;
         }
@@ -390,23 +321,10 @@ namespace R5T.D0101.I001
             // File is formatted as {Project Name}| {Project File Path} for convenience of human analysis. So convert it.
             var projects = await this.LoadProjects();
 
-            var projectsByIdentity = projects.ToDictionary(xProject => xProject.Identity);
-
-            var duplicateProjectNameValues = duplicateProjectNameSelections
-                .OrderAlphabetically(xDuplicateProjectNameSelection => xDuplicateProjectNameSelection.ProjectName)
-                .ToDictionary(
-                    xDuplicateProjectNameSelection => xDuplicateProjectNameSelection.ProjectName,
-                    xDuplicateProjectNameSelection =>
-                    {
-                        var projectForIdentity = projectsByIdentity[xDuplicateProjectNameSelection.ProjectIdentity];
-
-                        var projectFilePath = projectForIdentity.FilePath;
-                        return projectFilePath;
-                    });
-
-            Instances.DuplicateValuesOperator.SaveDuplicateValueSelections(
+            await Instances.Operation.SaveProjectNameSelections(
                 duplicateProjectNamesTextFilePath,
-                duplicateProjectNameValues);
+                duplicateProjectNameSelections,
+                projects);
         }
 
         #endregion
@@ -661,19 +579,22 @@ namespace R5T.D0101.I001
             return wasFound;
         }
 
-        public async Task AddIgnoredProjectName(string projectName)
+        public async Task AddIgnoredProjectNames(IEnumerable<string> projectNames)
         {
             var ignoredProjectNames = await this.LoadIgnoredProjectNames();
 
-            var wasFound = FileBasedProjectRepository.HasIgnoredProjectName(ignoredProjectNames, projectName);
-            if (wasFound)
+            foreach (var projectName in projectNames)
             {
-                throw new Exception("Ignored project name already exists");
+                var wasFound = FileBasedProjectRepository.HasIgnoredProjectName(ignoredProjectNames, projectName);
+                if (wasFound)
+                {
+                    throw new Exception("Ignored project name already exists");
+                }
             }
 
             // Else, modify and save.
             var modifiedIgnoredProjectNames = ignoredProjectNames
-                .Append(projectName)
+                .AppendRange(projectNames)
                 ;
 
             await this.SaveIgnoredProjectNames(modifiedIgnoredProjectNames);
@@ -704,19 +625,22 @@ namespace R5T.D0101.I001
             return wasFound;
         }
 
-        public async Task AddDuplicateProjectNameSelection(ProjectNameSelection duplicateProjectNameSelection)
+        public async Task AddDuplicateProjectNameSelections(IEnumerable<ProjectNameSelection> duplicateProjectNameSelections)
         {
-            var duplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
+            var repositoryDuplicateProjectNameSelections = await this.LoadDuplicateProjectNameSelections();
 
-            var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(duplicateProjectNameSelections, duplicateProjectNameSelection);
-            if (wasFound)
+            foreach (var duplicateProjectNameSelection in duplicateProjectNameSelections)
             {
-                throw new Exception("Duplicate project name selection already exists.");
+                var wasFound = FileBasedProjectRepository.HasDuplicateProjectNameSelection(repositoryDuplicateProjectNameSelections, duplicateProjectNameSelection);
+                if (wasFound)
+                {
+                    throw new Exception("Duplicate project name selection already exists.");
+                }
             }
 
             // Else, modify and save.
-            var modifiedDuplicateProjectNameSelections = duplicateProjectNameSelections
-                .Append(duplicateProjectNameSelection)
+            var modifiedDuplicateProjectNameSelections = repositoryDuplicateProjectNameSelections
+                .AppendRange(duplicateProjectNameSelections)
                 ;
 
             await this.SaveDuplicateProjectNameSelections(modifiedDuplicateProjectNameSelections);
@@ -902,9 +826,19 @@ namespace R5T.D0101.I001
             return wasFound;
         }
 
+        public async Task ClearAllDuplicateProjectNameSelections()
+        {
+            await this.SaveDuplicateProjectNameSelections(EnumerableHelper.Empty<ProjectNameSelection>());
+        }
+
         public async Task ClearAllProjectNameSelections()
         {
             await this.SaveProjectNameSelections(EnumerableHelper.Empty<ProjectNameSelection>());
+        }
+
+        public async Task ClearAllIgnoredProjectNames()
+        {
+            await this.SaveIgnoredProjectNames(EnumerableHelper.Empty<string>());
         }
 
         public async Task<Dictionary<string, WasFound<Project>>> HasProjectsByFilePath(IEnumerable<string> filePaths)
