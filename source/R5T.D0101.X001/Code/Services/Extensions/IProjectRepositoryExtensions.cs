@@ -135,6 +135,33 @@ namespace System
             return output;
         }
 
+        public static async Task<Dictionary<string, string>> GetProjectFilePaths(this IProjectRepository projectRepository,
+            IEnumerable<string> projectIdentityStrings)
+        {
+            var projectIdentityStringsIdentityPairs = projectIdentityStrings
+                .Distinct()
+                .Select(x => new { Identity = Instances.GuidOperator.FromStringStandard(x), IdentityString = x })
+                ;
+
+            var projectFilePathsByIdentity = await projectRepository.GetProjectFilePaths(
+                projectIdentityStringsIdentityPairs
+                    .Select(x => x.Identity));
+
+            var projectIdentityStringFilePathPairs =
+                from xProjectIdentityStringPair in projectIdentityStringsIdentityPairs
+                join xProjectFilePathPair in projectFilePathsByIdentity on xProjectIdentityStringPair.Identity equals xProjectFilePathPair.Key
+                // No default if empty, since GetProjectFilePaths() will throw if any are not found.
+                select new { xProjectIdentityStringPair.IdentityString, FilePath = xProjectFilePathPair.Value }
+                ;
+
+            var output = projectIdentityStringFilePathPairs
+                .ToDictionary(
+                    x => x.IdentityString,
+                    x => x.FilePath);
+
+            return output;
+        }
+
         public static async Task<WasFound<string>> HasProjectFilePath(this IProjectRepository projectRepository,
             Guid identity)
         {
