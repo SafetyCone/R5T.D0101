@@ -13,7 +13,7 @@ using Instances = R5T.D0101.X001.Instances;
 
 namespace System
 {
-    public static class IProjectRepositoryExtensions
+    public static partial class IProjectRepositoryExtensions
     {
         public static async Task AddDuplicateProjectNameSelection(this IProjectRepository projectRepository,
             ProjectNameSelection duplicateProjectNameSelection)
@@ -94,13 +94,6 @@ namespace System
             return output;
         }
 
-        public static Guid GetProjectIdentity(this IProjectRepository _,
-            string identityString)
-        {
-            var identity = Instances.GuidOperator.FromStringStandard(identityString);
-            return identity;
-        }
-
         public static async Task<Project> GetProject(this IProjectRepository projectRepository,
             Guid identity)
         {
@@ -124,6 +117,15 @@ namespace System
             return output;
         }
 
+        public static async Task<string[]> GetFilePathsForProjectIdentities(this IProjectRepository projectRepository,
+            IEnumerable<Guid> projectIdentities)
+        {
+            var projectFilePathsByIdentity = await projectRepository.GetProjectFilePaths(projectIdentities);
+
+            var output = projectFilePathsByIdentity.Values.ToArray();
+            return output;
+        }
+
         public static async Task<Dictionary<Guid, string>> GetProjectFilePaths(this IProjectRepository projectRepository,
             IEnumerable<Guid> projectIdentities)
         {
@@ -131,7 +133,7 @@ namespace System
                 projectIdentities,
                 Instances.Selector.SelectIdentity<IProject>(),
                 Instances.Selector.SelectFilePath<IProject>());
-
+            
             return output;
         }
 
@@ -158,6 +160,38 @@ namespace System
                 .ToDictionary(
                     x => x.IdentityString,
                     x => x.FilePath);
+
+            return output;
+        }
+
+        public static async Task<string[]> GetFilePathsForProjectIdentityStrings(this IProjectRepository projectRepository,
+            IEnumerable<string> projectIdentityStrings)
+        {
+            var projectIdentities = projectRepository.GetProjectIdentities(projectIdentityStrings);
+
+            var output = await projectRepository.GetFilePathsForProjectIdentities(
+                projectIdentities);
+
+            return output;
+        }
+
+        public static async Task<string> GetFilePathForProjectIdentity(this IProjectRepository projectRepository,
+            Guid projectIdentity)
+        {
+            var projectFilePathsByIdentity = await projectRepository.GetProjectFilePaths(
+                EnumerableHelper.From(projectIdentity));
+
+            var output = projectFilePathsByIdentity.Values.Single();
+            return output;
+        }
+
+        public static async Task<string> GetFilePathForProjectIdentityString(this IProjectRepository projectRepository,
+            string projectIdentityString)
+        {
+            var projectIdentity = projectRepository.GetProjectIdentity(projectIdentityString);
+
+            var output = await projectRepository.GetFilePathForProjectIdentity(
+                projectIdentity);
 
             return output;
         }
