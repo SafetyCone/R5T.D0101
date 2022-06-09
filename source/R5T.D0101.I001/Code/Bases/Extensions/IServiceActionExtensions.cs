@@ -9,7 +9,7 @@ namespace R5T.D0101.I001
     public static class IServiceActionExtensions
     {
         /// <summary>
-        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IProjectRepository"/> as a <see cref="ServiceLifetime.Singleton"/>.
+        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IProjectRepository"/> as a <see cref="Microsoft.Extensions.DependencyInjection.ServiceLifetime.Singleton"/>.
         /// </summary>
         public static IServiceAction<IProjectRepository> ForwardFileBasedProjectRepositoryToProjectRepositoryAction(this IServiceAction _,
             IServiceAction<IFileBasedProjectRepository> fileBasedProjectRepositoryAction)
@@ -21,7 +21,7 @@ namespace R5T.D0101.I001
         }
 
         /// <summary>
-        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IFileBasedProjectRepository"/> as a <see cref="ServiceLifetime.Singleton"/>.
+        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IFileBasedProjectRepository"/> as a <see cref="Microsoft.Extensions.DependencyInjection.ServiceLifetime.Singleton"/>.
         /// </summary>
         public static IServiceAction<IFileBasedProjectRepository> AddFileBasedProjectRepositoryAction(this IServiceAction _,
             IServiceAction<IProjectRepositoryFilePathsProvider> projectRepositoryFilePathsProviderAction)
@@ -33,7 +33,7 @@ namespace R5T.D0101.I001
         }
 
         /// <summary>
-        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IProjectRepository"/> as a <see cref="ServiceLifetime.Singleton"/>.
+        /// Adds the <see cref="FileBasedProjectRepository"/> implementation of <see cref="IProjectRepository"/> as a <see cref="Microsoft.Extensions.DependencyInjection.ServiceLifetime.Singleton"/>.
         /// </summary>
         public static IServiceAction<IProjectRepository> AddFileBasedProjectRepositoryAsProjectRepositoryAction(this IServiceAction _,
             IServiceAction<IProjectRepositoryFilePathsProvider> projectRepositoryFilePathsProviderAction)
